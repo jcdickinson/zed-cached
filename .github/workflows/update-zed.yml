@@ -31,13 +31,22 @@ jobs:
           fi
 
       - name: Exit if already processed
-        if: steps.check.outputs.exists == 'true'
+        if: steps.check.outputs.exists == 'true' && github.event_name != 'workflow_dispatch'
         run: |
           echo "Branch zed-${{ steps.latest.outputs.version }} already exists, skipping."
           exit 0
 
+      - name: Set should-run output
+        id: should_run
+        run: |
+          if [[ "${{ steps.check.outputs.exists }}" == "false" || "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "run=true" >> $GITHUB_OUTPUT
+          else
+            echo "run=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Free disk space
-        if: steps.check.outputs.exists == 'false'
+        if: steps.should_run.outputs.run == 'true'
         run: |
           df -h
           sudo rm -rf /usr/share/dotnet
@@ -48,27 +57,28 @@ jobs:
           df -h
 
       - name: Install Nix
-        if: steps.check.outputs.exists == 'false'
+        if: steps.should_run.outputs.run == 'true'
         uses: cachix/install-nix-action@v31
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
-            build-dir = /mnt/nix-build
-            sandbox = false
+
+          # build-dir = /mnt/nix-build
+          # sandbox = false
 
       - name: Make nix build dir
-        if: steps.check.outputs.exists == 'false'
+        if: steps.should_run.outputs.run == 'true'
         run: sudo mkdir -p /mnt/nix-build
 
       - name: Setup Cachix
-        if: steps.check.outputs.exists == 'false'
+        if: steps.should_run.outputs.run == 'true'
         uses: cachix/cachix-action@v16
         with:
           name: ${{ vars.CACHIX_NAME }}
           authToken: ${{ secrets.CACHIX_TOKEN }}
 
       - name: Create branch and update flake.lock
-        if: steps.check.outputs.exists == 'false'
+        if: steps.should_run.outputs.run == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -78,16 +88,16 @@ jobs:
           git commit -m "Update Zed to ${{ steps.latest.outputs.version }}"
 
       - name: Build default package
-        if: steps.check.outputs.exists == 'false'
+        if: steps.should_run.outputs.run == 'true'
         run: |
           nix build -L .#packages.x86_64-linux.default
 
       - name: Push branch
-        if: steps.check.outputs.exists == 'false'
+        if: steps.should_run.outputs.run == 'true'
         run: |
-          git push origin "zed-${{ steps.latest.outputs.version }}"
+          git push origin "zed-${{ steps.latest.outputs.version }}" --force
 
       - name: Update stable branch
-        if: steps.check.outputs.exists == 'false'
+        if: steps.should_run.outputs.run == 'true'
         run: |
           git push origin "zed-${{ steps.latest.outputs.version }}:stable" --force
