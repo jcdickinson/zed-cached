@@ -2,7 +2,7 @@ name: Update Zed
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Every 6 hours
+    - cron: "0 */6 * * *" # Every 6 hours
   workflow_dispatch:
 
 jobs:
@@ -34,16 +34,6 @@ jobs:
           echo "Branch zed-${{ steps.latest.outputs.version }} already exists, skipping."
           exit 0
 
-      - name: Free disk space
-        if: steps.check.outputs.exists == 'false'
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /opt/hostedtoolcache
-          sudo docker image prune --all --force
-          df -h
-
       - name: Install Nix
         if: steps.check.outputs.exists == 'false'
         uses: cachix/install-nix-action@v30
@@ -51,6 +41,9 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
             build-dir = /var/tmp/nix-build
+
+      - name: Make nix dir
+        run: sudo mkdir -p /var/tmp/nix-build
 
       - name: Setup Cachix
         if: steps.check.outputs.exists == 'false'
