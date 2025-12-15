@@ -34,6 +34,16 @@ jobs:
           echo "Branch zed-${{ steps.latest.outputs.version }} already exists, skipping."
           exit 0
 
+      - name: Free disk space
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache
+          sudo docker image prune --all --force
+          df -h
+
       - name: Install Nix
         if: steps.check.outputs.exists == 'false'
         uses: cachix/install-nix-action@v31
@@ -41,6 +51,7 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
             build-dir = /root/nix-build
+            sandbox = false
 
       - name: Make nix build dir
         if: steps.check.outputs.exists == 'false'
@@ -66,7 +77,7 @@ jobs:
       - name: Build default package
         if: steps.check.outputs.exists == 'false'
         run: |
-          nix build .#packages.x86_64-linux.default
+          nix build -L .#packages.x86_64-linux.default
 
       - name: Push to Cachix
         if: steps.check.outputs.exists == 'false'

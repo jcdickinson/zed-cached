@@ -2,14 +2,16 @@
 
 Pre-built Zed editor binaries for NixOS, cached via Cachix.
 
+The official repo only builds and caches a debug build. This fixes that.
+
 ## Usage
 
 Add the Cachix cache to your Nix configuration:
 
 ```nix
 nix.settings = {
-  substituters = [ "https://jcdickinson.cachix.org" ];
-  trusted-public-keys = [ "jcdickinson.cachix.org-1:GZBOGJF64N2yc8z/iAlApnNGgGQv1ApmuMz7xaU5dnY=" ];
+  substituters = [ "https://zed-cached.cachix.org" ];
+  trusted-public-keys = [ "zed-cached.cachix.org-1:+5QWh/HAC6AidVzXAKSR1LklqCAxSZrlLwanT86yEzo=" ];
 };
 ```
 
