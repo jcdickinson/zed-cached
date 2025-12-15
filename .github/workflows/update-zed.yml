@@ -36,7 +36,7 @@ jobs:
 
       - name: Install Nix
         if: steps.check.outputs.exists == 'false'
-        uses: cachix/install-nix-action@v30
+        uses: cachix/install-nix-action@v31
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
@@ -47,7 +47,7 @@ jobs:
 
       - name: Setup Cachix
         if: steps.check.outputs.exists == 'false'
-        uses: cachix/cachix-action@v15
+        uses: cachix/cachix-action@v16
         with:
           name: ${{ vars.CACHIX_NAME }}
           authToken: ${{ secrets.CACHIX_TOKEN }}
