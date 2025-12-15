@@ -1,0 +1,73 @@
+name: Update Zed
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get latest Zed release
+        id: latest
+        run: |
+          LATEST=$(curl -s https://api.github.com/repos/zed-industries/zed/releases/latest | jq -r '.tag_name')
+          echo "version=$LATEST" >> $GITHUB_OUTPUT
+
+      - name: Check if branch exists
+        id: check
+        run: |
+          if git ls-remote --exit-code --heads origin "zed-${{ steps.latest.outputs.version }}"; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Exit if already processed
+        if: steps.check.outputs.exists == 'true'
+        run: |
+          echo "Branch zed-${{ steps.latest.outputs.version }} already exists, skipping."
+          exit 0
+
+      - name: Install Nix
+        if: steps.check.outputs.exists == 'false'
+        uses: cachix/install-nix-action@v30
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Setup Cachix
+        if: steps.check.outputs.exists == 'false'
+        uses: cachix/cachix-action@v15
+        with:
+          name: ${{ vars.CACHIX_NAME }}
+          authToken: ${{ secrets.CACHIX_TOKEN }}
+
+      - name: Create branch and update flake.lock
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "zed-${{ steps.latest.outputs.version }}"
+          nix flake update zed --override-input zed "github:zed-industries/zed/${{ steps.latest.outputs.version }}"
+          git add flake.lock
+          git commit -m "Update Zed to ${{ steps.latest.outputs.version }}"
+
+      - name: Build default package
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          nix build .#packages.x86_64-linux.default
+
+      - name: Push to Cachix
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          cachix push ${{ vars.CACHIX_NAME }} ./result
+
+      - name: Push branch
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          git push origin "zed-${{ steps.latest.outputs.version }}"
