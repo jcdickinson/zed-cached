@@ -37,6 +37,7 @@ jobs:
       - name: Free disk space
         if: steps.check.outputs.exists == 'false'
         run: |
+          df -h
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
@@ -50,12 +51,12 @@ jobs:
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
-            build-dir = /root/nix-build
+            build-dir = /mnt/nix-build
             sandbox = false
 
       - name: Make nix build dir
         if: steps.check.outputs.exists == 'false'
-        run: sudo mkdir -p /root/nix-build
+        run: sudo mkdir -p /mnt/nix-build
 
       - name: Setup Cachix
         if: steps.check.outputs.exists == 'false'
