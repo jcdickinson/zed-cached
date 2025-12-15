@@ -40,14 +40,11 @@ jobs:
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
-            build-dir = /var/tmp/nix-build
+            build-dir = /root/nix-build
 
       - name: Make nix build dir
         if: steps.check.outputs.exists == 'false'
-        run: |
-          sudo mkdir -p /var/tmp/nix-build
-          sudo chmod 700 /var/tmp/nix-build
-          sudo chown root:root /var/tmp/nix-build
+        run: sudo mkdir -p /root/nix-build
 
       - name: Setup Cachix
         if: steps.check.outputs.exists == 'false'
