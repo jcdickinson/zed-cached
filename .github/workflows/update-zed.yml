@@ -87,6 +87,7 @@ jobs:
         with:
           name: ${{ vars.CACHIX_NAME }}
           authToken: ${{ secrets.CACHIX_TOKEN }}
+          skipPush: true
 
       - name: Create branch and update flake.lock
         if: steps.should_run.outputs.run == 'true'
