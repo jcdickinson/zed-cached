@@ -17,9 +17,20 @@ jobs:
 
       - name: Get latest Zed release
         id: latest
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          LATEST=$(curl -s https://api.github.com/repos/zed-industries/zed/releases/latest | jq -r '.tag_name')
-          echo "version=$LATEST" >> $GITHUB_OUTPUT
+          for i in 1 2 3; do
+            LATEST=$(curl -s -H "Authorization: Bearer $GH_TOKEN" https://api.github.com/repos/zed-industries/zed/releases/latest | jq -r '.tag_name')
+            if [[ "$LATEST" != "null" && -n "$LATEST" ]]; then
+              echo "version=$LATEST" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying in 1s..."
+            sleep 1
+          done
+          echo "Failed to get latest release after 3 attempts"
+          exit 1
 
       - name: Check if branch exists
         id: check
@@ -91,6 +102,11 @@ jobs:
         if: steps.should_run.outputs.run == 'true'
         run: |
           nix build -L .#packages.x86_64-linux.default
+
+      - name: Push to Cachix
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          cachix push ${{ vars.CACHIX_NAME }} ./result
 
       - name: Push branch
         if: steps.should_run.outputs.run == 'true'
