@@ -105,7 +105,7 @@ jobs:
           nix build -L .#packages.x86_64-linux.default
 
       - name: Push to Cachix
-        if: steps.check.outputs.exists == 'false'
+        if: steps.should_run.outputs.run == 'true'
         run: |
           cachix push ${{ vars.CACHIX_NAME }} ./result
 
